@@ -1,0 +1,5 @@
+# Project exclude paths
+/.idea/
+/out/
+/src/META-INF/
+/YTPlaylistSaver.iml
