@@ -30,8 +30,6 @@ public class ApiGetter {
                 Gson gson = new Gson();
                 return gson.fromJson(response.toString(), JsonObject.class);
 
-            } else {
-                System.out.println("Sadly, request to YouTube Api failed.");
             }
         } catch (IOException e) {
             System.out.println("An error has occurred: " + e);
