@@ -10,10 +10,14 @@ public class Main {
 
         try {
 
-            /* Filecreation*/
-            File playlistFile = new File(getClasspath() + "\\YTPlaylistSaver\\playlists.txt");//TODO add the outcommented stuff back in final version, messes with IDE
-            File apiFile = new File(getClasspath() + "\\YTPlaylistSaver\\APIKey.txt"); //TODO same here
-            File dataFile = new File(getClasspath() + "\\YTPlaylistSaver\\data.json");
+            /* File creation*/
+            File directory = new File(getClasspath() + "\\YTPlaylistSaver");
+            if(directory.mkdir()){
+                System.out.println("Created new directory");
+            }
+            File playlistFile = new File(directory + "\\playlists.txt");
+            File apiFile = new File(directory + "\\APIKey.txt");
+            File dataFile = new File(directory + "\\data.json");
 
             if (playlistFile.createNewFile()) {
                 System.out.println("New file created " + playlistFile.getName());
@@ -39,9 +43,10 @@ public class Main {
                 localSaves = jsonBuilder.fromJson(content.toString(), JsonArray.class);
             }
 
+            String key;
             /*get or initialize the API-Key*/
             try (BufferedReader apiReader = new BufferedReader(new FileReader(apiFile.getPath()))) {
-                String key = apiReader.readLine();
+                key = apiReader.readLine();
                 if (key == null || key.equals("")) {
                     System.out.println("No API-Key found, enter it here (You can get one as described here: https://developers.google.com/youtube/v3/getting-started):");
                     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -79,15 +84,14 @@ public class Main {
                         JsonArray playlist = new JsonArray();
                         JsonObject response = ApiGetter.getApiInfo("https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet%2CcontentDetails&maxResults=25&playlistId=" + playlistID + "&key=" + key);
                         if (response.equals(new JsonObject())) {
-                            System.out.println("There was an error trying to fetch the \"" + playlistName + "\" playlist from the YouTube API. Please verify that your playlistID is set correctly and that the playlist is set to public.");
                             continue;
                         }
-                        /*all the vids that are in the playlist rn are put into our list*/
+                        /*all the videos that are in the playlist rn are put into our list*/
                         for (JsonElement video : response.get("items").getAsJsonArray()) {
                             playlist.add(video);
                         }
 
-                        /*in case there are more than 50 vids*/
+                        /*in case there are more than 50 videos*/
                         while (response.has("nextPageToken")) {
                             String nextPageToken = response.get("nextPageToken").getAsString();
                             response = ApiGetter.getApiInfo("https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet%2CcontentDetails&maxResults=25&pageToken=" + nextPageToken + "&playlistId=" + playlistID + "&key=" + key);
@@ -110,7 +114,7 @@ public class Main {
                                 addPlaylistToSave(localSaves, playlistID, playlist);
                             }
 
-                            /*all the vids that are in the saved playlist put into a list*/
+                            /*all the videos that are in the saved playlist put into a list*/
                             JsonArray savedPlaylist = new JsonArray();
                             for (JsonElement pl : localSaves) {
                                 if (pl.getAsJsonObject().get("id").getAsString().equals(playlistID)) {
@@ -131,7 +135,7 @@ public class Main {
                                         if (!savedVideo.getAsJsonObject().get("title").getAsString().equals(fetchedVideo.getAsJsonObject().get("snippet").getAsJsonObject().get("title").getAsString())) {
                                             differentVideos.add("\"" + savedVideo.getAsJsonObject().get("title").getAsString() + "\" changed to \"" +
                                                     fetchedVideo.getAsJsonObject().get("snippet").getAsJsonObject().get("title").getAsString() + "\" at position " +
-                                                    (savedVideo.getAsJsonObject().get("position").getAsInt() + 1) + "in playlist " + playlistName + ".");
+                                                    (savedVideo.getAsJsonObject().get("position").getAsInt() + 1) + " in playlist " + playlistName + ".");
                                         }
                                         continue matchingTitle;
                                     }
@@ -174,6 +178,7 @@ public class Main {
                         }
                     } //end of while(playlistString != null)
 
+                    System.out.println();
                     if (differentVideos.size() > 0) {
                         for (String out : differentVideos) {
                             System.out.println(out);
@@ -181,22 +186,23 @@ public class Main {
                     } else {
                         System.out.println("Nothing has been changed in your playlist(s).");
                     }
-                    System.out.println("Sadly, there is currently no way of verifying whether a video is unlisted atm, you used to be able to watch those videos if they were in a playlist before, that doesn't seem to apply to at least some videos though ;-;");
+                    System.out.println();
+                    System.out.println("Sadly, there is currently no way of verifying whether a video is unlisted at the moment, you used to be able to watch those videos if they were in a playlist before, that doesn't seem to apply to at least some videos though ;-;");
 
-                    System.out.println();
+                    System.out.println("\n");
                     System.out.println("These are your playlists that are being checked at the moment:");
-                    for (String playlistName : playlists.keySet()) {
-                        System.out.println(playlistName + " (ID: " + playlists.get(playlistName) + ")");
+                    if(playlists.keySet().isEmpty()){
+                        System.out.println("none");
                     }
-                    System.out.println();
+                    else {
+                        for (String playlistName : playlists.keySet()) {
+                            System.out.println(playlistName + " (ID: " + playlists.get(playlistName) + ")");
+                        }
+                    }
+                    System.out.println("\n");
 
                     try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in))) {
-                        System.out.println("To add another playlist, enter \"add [playlistName] [playlistID]\".");
-                        System.out.println("(You find a playlist's ID after the \"?list=\" in it's respective URL)");
-                        System.out.println("To edit a playlist's ID enter \"edit [playlistName] [newPlaylistID]\".");
-                        System.out.println("To remove a playlist, enter \"remove [playlistName]\".");
-                        System.out.println("To list all active playlists, enter \"list\".");
-                        System.out.println("To exit the program, simply enter \"stop\".");
+                        printCommands();
                         System.out.println();
 
                         actionPerformed:
@@ -223,7 +229,8 @@ public class Main {
                                 }
                                 playlists.put(parts[1], parts[2]);
                                 System.out.println("The Playlist \"" + parts[1] + "\" has been added.");
-                            } else if (input.toLowerCase().startsWith("edit")) {
+                            }
+                            else if (input.toLowerCase().startsWith("edit")) {
                                 String[] parts = input.split(" ");
                                 if (parts.length != 3) {
                                     System.out.println("Please format your request like this: \"edit [playlistName] [newPlaylistID]\" (without the brackets ([]) and quotation marks (\"\") and with the right amount of spaces (two in this case)).");
@@ -243,7 +250,8 @@ public class Main {
                                     }
                                 }
                                 System.out.println("Your requested playlist is not being tracked, make sure you spelled it correctly (also don't actually enter the brackets ([]) or quotation marks (\"\").");
-                            } else if (input.toLowerCase().startsWith("remove")) {
+                            }
+                            else if (input.toLowerCase().startsWith("remove")) {
                                 String[] parts = input.split(" ");
                                 if (parts.length != 2) {
                                     System.out.println("Please format your request like this: \"remove [playlistName]\" (without the brackets ([]) and quotation marks (\"\") and with the right amount of spaces (one in this case)).");
@@ -263,19 +271,32 @@ public class Main {
                                     }
                                 }
                                 System.out.println("Your requested playlist is not being tracked, make sure you spelled it correctly (also don't actually enter the brackets ([]) or quotation marks (\"\").");
-                            } else if (input.equalsIgnoreCase("list")) {
+                            }
+                            else if (input.equalsIgnoreCase("list")) {
                                 System.out.println("These are your playlists that are being checked at the moment:");
                                 for (String playlistName : playlists.keySet()) {
                                     System.out.println(playlistName + " (ID: " + playlists.get(playlistName) + ")");
                                 }
-                            } else if (input.equalsIgnoreCase("help")) {
-                                System.out.println("To add another playlist, enter \"add [playlistName] [playlistID]\".");
-                                System.out.println("(You find a playlist's ID after the \"?list=\" in it's respective URL)");
-                                System.out.println("To edit a playlist's ID enter \"edit [playlistName] [newPlaylistID]\".");
-                                System.out.println("To remove a playlist, enter \"remove [playlistName]\".");
-                                System.out.println("To list all active playlists, enter \"list\".");
-                                System.out.println("To exit the program, simply enter \"stop\".");
-                            } else if (input.equalsIgnoreCase("stop")) break;
+                            }
+                            else if (input.equalsIgnoreCase("help")) {
+                                printCommands();
+                            }
+                            else if (input.toLowerCase().startsWith("changeapi")){
+                                String[] parts = input.split(" ");
+                                if (parts.length != 2) {
+                                    System.out.println("Please format your request like this: \"changeApi [newAPI-key]\" (without the brackets ([]) and quotation marks (\"\") and with the right amount of spaces (one in this case)).");
+                                    System.out.println();
+                                    continue;
+                                }
+                                System.out.println("Are you sure you want to change your API-key from \"" + key + "\" to \"" + parts[1] + "\"? Y/N");
+                                String answer = in.readLine();
+                                if (answer.equalsIgnoreCase("Y") || answer.equalsIgnoreCase("yes")) {
+                                    key = parts[1];
+                                    System.out.println("Your API-key has been changed to \"" + key + "\".");
+                                }
+                                else System.out.println("Action cancelled");
+                            }
+                            else if (input.equalsIgnoreCase("stop")) break;
                             System.out.println();
                         }
 
@@ -283,6 +304,9 @@ public class Main {
                             for (String playlistName : playlists.keySet()) {
                                 bw.write(playlistName + ": " + playlists.get(playlistName) + "\n");
                             }
+                        }
+                        try (BufferedWriter bw = new BufferedWriter(new FileWriter(apiFile.getPath()))){
+                            bw.write(key);
                         }
                         System.out.println("Bye!");
                     }
@@ -297,6 +321,16 @@ public class Main {
             System.out.println("Relevant save-files could not be created or read: " + e);
         }
 
+    }
+
+    private static void printCommands() {
+        System.out.println("To add another playlist, enter \"add [playlistName] [playlistID]\".");
+        System.out.println("(You find a playlist's ID after the \"?list=\" in it's respective URL)");
+        System.out.println("To edit a playlist's ID enter \"edit [playlistName] [newPlaylistID]\".");
+        System.out.println("To remove a playlist, enter \"remove [playlistName]\".");
+        System.out.println("To list all active playlists, enter \"list\".");
+        System.out.println("To change your API-key, enter \"changeAPI [newAPI-key]\".");
+        System.out.println("To exit the program, simply enter \"stop\".");
     }
 
     private static void addVideoToPlaylist(JsonArray savedPlaylist, JsonElement fetchedVideo) {
@@ -330,6 +364,6 @@ public class Main {
     public static String getClasspath() throws URISyntaxException {
         File file = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         String fileName = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getName();
-        return file.getPath().replace(fileName, ""); //TODO add this back when compiling, it doesn't work in the IDE but is needed when executed normally
+        return file.getPath().substring(0, file.getPath().length()-(fileName.length()));
     }
 }
