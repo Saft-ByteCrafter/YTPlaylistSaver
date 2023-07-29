@@ -6,18 +6,20 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
 
         try {
 
+            String ossplit = getOSDirSplitString();
+
             /* File creation*/
-            File directory = new File(getClasspath() + "\\YTPlaylistSaver");
-            if(directory.mkdir()){
+            File directory = new File(getClasspath() + ossplit + "YTPlaylistSaver");
+            if (directory.mkdir()) {
                 System.out.println("Created new directory");
             }
-            File playlistFile = new File(directory + "\\playlists.txt");
-            File apiFile = new File(directory + "\\APIKey.txt");
-            File dataFile = new File(directory + "\\data.json");
+            File playlistFile = new File(directory + ossplit + "playlists.txt");
+            File apiFile = new File(directory + ossplit + "APIKey.txt");
+            File dataFile = new File(directory + ossplit + "data.json");
 
             if (playlistFile.createNewFile()) {
                 System.out.println("New file created " + playlistFile.getName());
@@ -47,12 +49,12 @@ public class Main {
             /*get or initialize the API-Key*/
             try (BufferedReader apiReader = new BufferedReader(new FileReader(apiFile.getPath()))) {
                 key = apiReader.readLine();
-                if (key == null || key.equals("")) {
+                if (key == null || key.isBlank()) {
                     System.out.println("No API-Key found, enter it here (You can get one as described here: https://developers.google.com/youtube/v3/getting-started):");
                     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
                     while (true) {
                         String newKey = reader.readLine();
-                        if (!newKey.equals("")) {
+                        if (!newKey.isBlank()) {
                             key = newKey;
                             try (FileWriter writer = new FileWriter(apiFile.getPath())) {
                                 writer.write(newKey);
@@ -179,7 +181,7 @@ public class Main {
                     } //end of while(playlistString != null)
 
                     System.out.println();
-                    if (differentVideos.size() > 0) {
+                    if (!differentVideos.isEmpty()) {
                         for (String out : differentVideos) {
                             System.out.println(out);
                         }
@@ -191,10 +193,9 @@ public class Main {
 
                     System.out.println("\n");
                     System.out.println("These are your playlists that are being checked at the moment:");
-                    if(playlists.keySet().isEmpty()){
+                    if (playlists.keySet().isEmpty()) {
                         System.out.println("none");
-                    }
-                    else {
+                    } else {
                         for (String playlistName : playlists.keySet()) {
                             System.out.println(playlistName + " (ID: " + playlists.get(playlistName) + ")");
                         }
@@ -229,8 +230,7 @@ public class Main {
                                 }
                                 playlists.put(parts[1], parts[2]);
                                 System.out.println("The Playlist \"" + parts[1] + "\" has been added.");
-                            }
-                            else if (input.toLowerCase().startsWith("edit")) {
+                            } else if (input.toLowerCase().startsWith("edit")) {
                                 String[] parts = input.split(" ");
                                 if (parts.length != 3) {
                                     System.out.println("Please format your request like this: \"edit [playlistName] [newPlaylistID]\" (without the brackets ([]) and quotation marks (\"\") and with the right amount of spaces (two in this case)).");
@@ -250,8 +250,7 @@ public class Main {
                                     }
                                 }
                                 System.out.println("Your requested playlist is not being tracked, make sure you spelled it correctly (also don't actually enter the brackets ([]) or quotation marks (\"\").");
-                            }
-                            else if (input.toLowerCase().startsWith("remove")) {
+                            } else if (input.toLowerCase().startsWith("remove")) {
                                 String[] parts = input.split(" ");
                                 if (parts.length != 2) {
                                     System.out.println("Please format your request like this: \"remove [playlistName]\" (without the brackets ([]) and quotation marks (\"\") and with the right amount of spaces (one in this case)).");
@@ -271,17 +270,14 @@ public class Main {
                                     }
                                 }
                                 System.out.println("Your requested playlist is not being tracked, make sure you spelled it correctly (also don't actually enter the brackets ([]) or quotation marks (\"\").");
-                            }
-                            else if (input.equalsIgnoreCase("list")) {
+                            } else if (input.equalsIgnoreCase("list")) {
                                 System.out.println("These are your playlists that are being checked at the moment:");
                                 for (String playlistName : playlists.keySet()) {
                                     System.out.println(playlistName + " (ID: " + playlists.get(playlistName) + ")");
                                 }
-                            }
-                            else if (input.equalsIgnoreCase("help")) {
+                            } else if (input.equalsIgnoreCase("help")) {
                                 printCommands();
-                            }
-                            else if (input.toLowerCase().startsWith("changeapi")){
+                            } else if (input.toLowerCase().startsWith("changeapi")) {
                                 String[] parts = input.split(" ");
                                 if (parts.length != 2) {
                                     System.out.println("Please format your request like this: \"changeApi [newAPI-key]\" (without the brackets ([]) and quotation marks (\"\") and with the right amount of spaces (one in this case)).");
@@ -293,10 +289,8 @@ public class Main {
                                 if (answer.equalsIgnoreCase("Y") || answer.equalsIgnoreCase("yes")) {
                                     key = parts[1];
                                     System.out.println("Your API-key has been changed to \"" + key + "\".");
-                                }
-                                else System.out.println("Action cancelled");
-                            }
-                            else if (input.equalsIgnoreCase("stop")) break;
+                                } else System.out.println("Action cancelled");
+                            } else if (input.equalsIgnoreCase("stop")) break;
                             System.out.println();
                         }
 
@@ -305,7 +299,7 @@ public class Main {
                                 bw.write(playlistName + ": " + playlists.get(playlistName) + "\n");
                             }
                         }
-                        try (BufferedWriter bw = new BufferedWriter(new FileWriter(apiFile.getPath()))){
+                        try (BufferedWriter bw = new BufferedWriter(new FileWriter(apiFile.getPath()))) {
                             bw.write(key);
                         }
                         System.out.println("Bye!");
@@ -313,14 +307,21 @@ public class Main {
 
                 }
             }
-        }
-        catch (URISyntaxException e) {
+        } catch (URISyntaxException e) {
             System.out.println("Important files could be fetched: " + e);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             System.out.println("Relevant save-files could not be created or read: " + e);
         }
 
+    }
+
+    private static String getOSDirSplitString() {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            return "\\";
+        } else {
+            return "/";
+        }
     }
 
     private static void printCommands() {
@@ -352,9 +353,9 @@ public class Main {
         localSaves.add(newPlaylist);
     }
 
-    public static boolean comparePlaylist(JsonArray localSaves, String playlistID){
-        for(JsonElement playlist : localSaves){
-            if(playlist.getAsJsonObject().get("id").getAsString().equals(playlistID)) {
+    public static boolean comparePlaylist(JsonArray localSaves, String playlistID) {
+        for (JsonElement playlist : localSaves) {
+            if (playlist.getAsJsonObject().get("id").getAsString().equals(playlistID)) {
                 return true;
             }
         }
@@ -364,6 +365,6 @@ public class Main {
     public static String getClasspath() throws URISyntaxException {
         File file = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         String fileName = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getName();
-        return file.getPath().substring(0, file.getPath().length()-(fileName.length()));
+        return file.getPath().substring(0, file.getPath().length() - (fileName.length()));
     }
 }
